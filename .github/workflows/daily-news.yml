@@ -1,0 +1,38 @@
+name: Daily News Automation
+
+on:
+  schedule:
+    # 北京时间 每天 9:00 和 17:00 运行 (UTC 时间 1:00 和 9:00)
+    - cron: '0 1,9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 lxml
+
+      - name: Run hot news script
+        run: python hot_news_factory.py
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+
+      - name: Commit and push generated articles
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add 每日热点简报/
+          git diff --staged --quiet || git commit -m "Auto-update daily news [skip ci]"
+          git push
